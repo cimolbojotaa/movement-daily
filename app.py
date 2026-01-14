@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from sqlalchemy import create_engine, text, bindparam
+from sqlalchemy import create_engine, text
 from datetime import date, timedelta
 import os
 from urllib.parse import quote_plus
@@ -12,6 +12,7 @@ DB_NAME = st.secrets.get("DB_NAME", os.getenv("DB_NAME"))
 DB_USER = st.secrets.get("DB_USER", os.getenv("DB_USER"))
 DB_PASSWORD = st.secrets.get("DB_PASSWORD", os.getenv("DB_PASSWORD"))
 
+# VALIDASI ENV (BIAR ERROR JELAS)
 missing = [k for k, v in {
     "DB_HOST": DB_HOST,
     "DB_PORT": DB_PORT,
@@ -24,8 +25,10 @@ if missing:
     st.error(f"❌ Missing environment variables: {', '.join(missing)}")
     st.stop()
 
+# ENCODE PASSWORD (WAJIB)
 DB_PASSWORD = quote_plus(DB_PASSWORD)
 
+# DB ENGINE
 engine = create_engine(
     f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{int(DB_PORT)}/{DB_NAME}",
     pool_pre_ping=True
@@ -39,9 +42,9 @@ st.set_page_config(
 
 st.title("Movement Daily")
 
-# DEFAULT DATE
 yesterday = date.today() - timedelta(days=3)
 
+# SIDEBAR FILTER
 st.sidebar.header("Filter")
 
 selected_date = st.sidebar.date_input(
@@ -51,13 +54,13 @@ selected_date = st.sidebar.date_input(
 
 start_date = end_date = selected_date
 
+
 # LOAD FILTER OPTIONS
 @st.cache_data
 def load_filter_options():
     query = """
         SELECT DISTINCT outlet, item
-        FROM public.mv_movement_daily
-        WHERE lower(item) NOT ILIKE '%frozen%'
+        FROM public.mv_movement_daily 
         ORDER BY outlet, item
     """
     return pd.read_sql(query, engine)
@@ -72,28 +75,22 @@ default_index = (
     else 0
 )
 
+
 outlet_selected = st.sidebar.selectbox(
     "Outlet",
     options=outlet_options,
     index=default_index
 )
 
-item_options = (
-    filter_df[filter_df["outlet"] == outlet_selected]["item"]
-    .dropna()
-    .unique()
-    .tolist()
-)
 
 item_selected = st.sidebar.multiselect(
     "Item",
-    options=item_options
+    options=filter_df["item"].dropna().unique()
 )
 
 # LOAD DATA
 @st.cache_data
 def load_data(start_date, end_date, outlet_selected, item_selected):
-
     query = """
         SELECT
             tanggal,
@@ -101,10 +98,10 @@ def load_data(start_date, end_date, outlet_selected, item_selected):
             spv,
             kota,
             item,
-            stock_awal,
+            stock_awal, 
             stock_masuk,
             qty_terpakai,
-            qty_sisa,
+            qty_sisa, -- qty_sisa = qty_sisa_raw - qty_retur
             ideal_usage_qty,
             retur_qty,
             qty_sisa_seharusnya,
@@ -112,32 +109,29 @@ def load_data(start_date, end_date, outlet_selected, item_selected):
             so_flag
         FROM public.mv_movement_daily
         WHERE tanggal BETWEEN :start_date AND :end_date
-          AND lower(item) NOT ILIKE '%frozen%'
-          AND outlet = :outlet
     """
 
     params = {
         "start_date": start_date,
-        "end_date": end_date,
-        "outlet": outlet_selected
+        "end_date": end_date
     }
 
+    if outlet_selected:
+        query += " AND outlet = :outlet"
+        params["outlet"] = outlet_selected
+
+
     if item_selected:
-        query += " AND item IN :items"
+        query += " AND item = ANY(:item)"
+        params["item"] = item_selected
 
     query += " ORDER BY tanggal, outlet, item"
 
-    stmt = text(query)
-
-    if item_selected:
-        stmt = stmt.bindparams(bindparam("items", expanding=True))
-        params["items"] = tuple(item_selected)
-
-    return pd.read_sql(stmt, engine, params=params)
+    return pd.read_sql(text(query), engine, params=params)
 
 df = load_data(start_date, end_date, outlet_selected, item_selected)
 
-# INFO
+# INFO PERIODE
 st.caption(f"📅 Periode Data: {start_date}")
 
 if df.empty:
@@ -167,7 +161,7 @@ df = df.rename(columns={
     "so_flag": "Status Stok"
 })
 
-# FORMAT NUMERIC
+# BULATKAN KOLOM NUMERIK
 numeric_cols = [
     "Stok Awal Hari",
     "Barang Masuk (DC)",
@@ -180,7 +174,13 @@ numeric_cols = [
 ]
 
 for col in numeric_cols:
-    df[col] = df[col].fillna(0).round(0).astype("int64")
+    if col in df.columns:
+        df[col] = (
+            df[col]
+            .fillna(0)
+            .round(0)
+            .astype("int64")
+        )
 
 # HIGHLIGHT TIDAK SESUAI
 highlight_cols = [
@@ -188,7 +188,7 @@ highlight_cols = [
     "Outlet",
     "SPV",
     "Kota",
-    "Item",
+    "Nama Produk",
     "Status Stok"
 ]
 
@@ -202,24 +202,26 @@ def highlight_tidak_sesuai(row):
 
 styled_df = df.style.apply(highlight_tidak_sesuai, axis=1)
 
+# TABLE
 st.dataframe(
     styled_df,
     use_container_width=True,
     height=600
 )
 
+# DESKRIPSI KOLOM
 st.markdown("""
 <small>
 
 **Keterangan Kolom:**
-* **Stok Awal Hari**: Sisa stok dari hari sebelumnya **(sudah dikurangi retur)**
-* **Barang Masuk (DC)**: Barang kiriman dari gudang / DC  
-* **Terpakai / Terjual**: Barang yang digunakan / terjual **(Stok Awal Hari + Barang Masuk (DC) - SO)**
-* **Barang Retur**: Barang yang dikembalikan ke gudang / DC  
-* **Sisa Stok Akhir**: Stok fisik terakhir **(sudah dikurangi retur)** 
-* **Pemakaian Seharusnya**: Standar pemakaian **(data DRetail)**  
-* **Sisa Seharusnya**: Sisa stok sesuai standar **(data DRetail)**  
-* **Status Stok**: **Sesuai** / **Tidak Sesuai**, sesuai jika **Terpakai / Terjual = Pemakaian Seharusnya**
+- **Stok Awal Hari**: Sisa stok dari hari sebelumnya **(sudah dikurangi retur)**
+- **Barang Masuk (DC)**: Barang kiriman dari gudang / DC  
+- **Terpakai / Terjual**: Barang yang digunakan / terjual **(Stok Awal Hari + Barang Masuk (DC) - SO)**
+- **Barang Retur**: Barang yang dikembalikan ke gudang / DC  
+- **Sisa Stok Akhir**: Stok fisik terakhir **(sudah dikurangi retur)** 
+- **Pemakaian Seharusnya**: Standar pemakaian (data DRetail)  
+- **Sisa Seharusnya**: Sisa stok sesuai standar (data DRetail)  
+- **Status Stok**: **Sesuai** / **Tidak Sesuai**, sesuai jika **Sisa Stok Akhir = Sisa Seharusnya**
 
 </small>
 """, unsafe_allow_html=True)
