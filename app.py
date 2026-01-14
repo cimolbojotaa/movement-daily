@@ -213,7 +213,7 @@ st.markdown("""
 <small>
 
 **Keterangan Kolom:**
-- **Stok Awal Hari**: Sisa stok dari hari sebelumnya  
+- **Stok Awal Hari**: Sisa stok dari hari sebelumnya **(sudah dikurangi retur)**
 - **Barang Masuk (DC)**: Barang kiriman dari gudang / DC  
 - **Terpakai / Terjual**: Barang yang digunakan / terjual  
 - **Barang Retur**: Barang yang dikembalikan ke gudang / DC  
