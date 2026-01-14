@@ -212,14 +212,14 @@ st.markdown("""
 <small>
 
 **Keterangan Kolom:**
-- **Stok Awal Hari**: Sisa stok dari hari sebelumnya **(sudah dikurangi retur)**
-- **Barang Masuk (DC)**: Barang kiriman dari gudang / DC  
-- **Terpakai / Terjual**: Barang yang digunakan / terjual  
-- **Barang Retur**: Barang yang dikembalikan ke gudang / DC  
-- **Sisa Stok Akhir**: Stok fisik terakhir **(sudah dikurangi retur)**  
-- **Pemakaian Seharusnya**: Standar pemakaian (data DRetail)  
-- **Sisa Seharusnya**: Sisa stok sesuai standar (data DRetail)  
-- **Status Stok**: **Sesuai / Tidak Sesuai**
+* **Stok Awal Hari**: Sisa stok dari hari sebelumnya **(sudah dikurangi retur)**
+* **Barang Masuk (DC)**: Barang kiriman dari gudang / DC  
+* **Terpakai / Terjual**: Barang yang digunakan / terjual **(Stok Awal Hari + Barang Masuk (DC) - SO)**
+* **Barang Retur**: Barang yang dikembalikan ke gudang / DC  
+* **Sisa Stok Akhir**: Stok fisik terakhir **(sudah dikurangi retur)** 
+* **Pemakaian Seharusnya**: Standar pemakaian **(data DRetail)**  
+* **Sisa Seharusnya**: Sisa stok sesuai standar **(data DRetail)**  
+* **Status Stok**: **Sesuai** / **Tidak Sesuai**, sesuai jika **Terpakai / Terjual = Pemakaian Seharusnya**
 
 </small>
 """, unsafe_allow_html=True)
