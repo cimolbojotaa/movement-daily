@@ -132,7 +132,7 @@ def load_data(start_date, end_date, outlet_selected, item_selected):
 df = load_data(start_date, end_date, outlet_selected, item_selected)
 
 # INFO PERIODE
-st.caption(f"📅 Periode: {start_date} s/d {end_date}")
+st.caption(f"📅 Periode Data: {start_date}")
 
 if df.empty:
     st.warning("⚠️ Tidak ada data untuk filter yang dipilih")
