@@ -60,10 +60,10 @@ def load_filter_options():
     query = """
         SELECT DISTINCT outlet, item
         FROM public.mv_movement_daily
-        WHERE lower(item) NOT ILIKE '%frozen%'
+        WHERE item NOT ILIKE '%frozen%'
         ORDER BY outlet, item
     """
-    return pd.read_sql(query, engine)
+    return pd.read_sql(text(query), engine)
 
 filter_df = load_filter_options()
 
