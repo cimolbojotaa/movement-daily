@@ -36,11 +36,11 @@ engine = create_engine(
 
 # PAGE CONFIG
 st.set_page_config(
-    page_title="Movement Daily Dashboard",
+    page_title="Movement Daily",
     layout="wide"
 )
 
-st.title("Movement Daily Dashboard")
+st.title("Movement Daily")
 
 yesterday = date.today() - timedelta(days=3)
 
@@ -69,9 +69,16 @@ def load_filter_options():
 
 filter_df = load_filter_options()
 
+default_outlet = (
+    ["Alfamart Kopo"]
+    if "Alfamart Kopo" in filter_df["outlet"].values
+    else []
+)
+
 outlet_selected = st.sidebar.multiselect(
     "Outlet",
-    options=filter_df["outlet"].dropna().unique()
+    options=filter_df["outlet"].dropna().unique(),
+    default=default_outlet
 )
 
 item_selected = st.sidebar.multiselect(
