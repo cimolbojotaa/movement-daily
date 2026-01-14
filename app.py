@@ -226,9 +226,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # DOWNLOAD
-st.download_button
-    "⬇️ Download CSV",
-    df.to_csv(index=False),
+st.download_button(
+    label="⬇️ Download CSV",
+    data=df.to_csv(index=False),
     file_name="movement_daily.csv",
     mime="text/csv"
 )
