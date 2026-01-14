@@ -158,6 +158,29 @@ df = df.rename(columns={
     "so_flag": "Status Stok"
 })
 
+# ============================
+# BULATKAN KOLOM NUMERIK
+# ============================
+numeric_cols = [
+    "Stok Awal Hari",
+    "Barang Masuk (DC)",
+    "Terpakai / Terjual",
+    "Sisa Stok Akhir",
+    "Pemakaian Seharusnya",
+    "Barang Retur",
+    "Sisa Seharusnya",
+    "Selisih Sisa"
+]
+
+for col in numeric_cols:
+    if col in df.columns:
+        df[col] = (
+            df[col]
+            .fillna(0)
+            .round(0)
+            .astype("int64")
+        )
+
 # HIGHLIGHT TIDAK SESUAI
 highlight_cols = [
     "Tanggal",
