@@ -75,6 +75,32 @@ default_index = (
     else 0
 )
 
+st.markdown(
+    """
+    <style>
+    /* Selectbox container */
+    div[data-baseweb="select"] > div {
+        background-color: #ffe6e6 !important;  /* merah muda */
+        border: 2px solid #ff4d4f !important; /* merah */
+        border-radius: 6px;
+    }
+
+    /* Text di dalam selectbox */
+    div[data-baseweb="select"] span {
+        color: #a8071a !important;
+        font-weight: 600;
+    }
+
+    /* Hover */
+    div[data-baseweb="select"] > div:hover {
+        background-color: #ffcccc !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
 outlet_selected = st.sidebar.selectbox(
     "Outlet",
     options=outlet_options,
