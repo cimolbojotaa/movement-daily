@@ -60,7 +60,7 @@ start_date = end_date = selected_date
 def load_filter_options():
     query = """
         SELECT DISTINCT outlet, item
-        FROM public.mv_movement_daily
+        FROM public.mv_movement_daily where lower(item) not ilike '%frozen%'
         ORDER BY outlet, item
     """
     return pd.read_sql(query, engine)
@@ -108,7 +108,7 @@ def load_data(start_date, end_date, outlet_selected, item_selected):
             gap_qty_sisa,
             so_flag
         FROM public.mv_movement_daily
-        WHERE tanggal BETWEEN :start_date AND :end_date
+        WHERE tanggal BETWEEN :start_date AND :end_date and lower(item) not ilike '%frozen%'
     """
 
     params = {
@@ -219,9 +219,9 @@ st.markdown("""
 - **Terpakai / Terjual**: Barang yang digunakan / terjual **(Stok Awal Hari + Barang Masuk (DC) - SO)**
 - **Barang Retur**: Barang yang dikembalikan ke gudang / DC  
 - **Sisa Stok Akhir**: Stok fisik terakhir **(sudah dikurangi retur)** 
-- **Pemakaian Seharusnya**: Standar pemakaian (data DRetail)  
-- **Sisa Seharusnya**: Sisa stok sesuai standar (data DRetail)  
-- **Status Stok**: **Sesuai** / **Tidak Sesuai**, sesuai jika **Sisa Stok Akhir = Sisa Seharusnya**
+- **Pemakaian Seharusnya**: Standar pemakaian **(data DRetail)**  
+- **Sisa Seharusnya**: Sisa stok sesuai standar **(data DRetail)**  
+- **Status Stok**: **Sesuai** / **Tidak Sesuai**, sesuai jika **Terpakai / Terjual = Pemakaian Seharusnya**
 
 </small>
 """, unsafe_allow_html=True)
