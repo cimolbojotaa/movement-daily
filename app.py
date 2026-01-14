@@ -100,7 +100,7 @@ def load_data(start_date, end_date, outlet_selected, item_selected):
             stock_awal, 
             stock_masuk,
             qty_terpakai,
-            qty_sisa, # qty_sisa = qty_sisa_raw - qty_retur
+            qty_sisa, -- qty_sisa = qty_sisa_raw - qty_retur
             ideal_usage_qty,
             retur_qty,
             qty_sisa_seharusnya,
