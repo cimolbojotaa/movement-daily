@@ -3,33 +3,45 @@ import pandas as pd
 from sqlalchemy import create_engine, text
 from datetime import date, timedelta
 import os
-from dotenv import load_dotenv
+from urllib.parse import quote_plus
 
-# LOAD ENV
-load_dotenv()
+# LOAD ENV / SECRETS
+DB_HOST = st.secrets.get("DB_HOST", os.getenv("DB_HOST"))
+DB_PORT = st.secrets.get("DB_PORT", os.getenv("DB_PORT"))
+DB_NAME = st.secrets.get("DB_NAME", os.getenv("DB_NAME"))
+DB_USER = st.secrets.get("DB_USER", os.getenv("DB_USER"))
+DB_PASSWORD = st.secrets.get("DB_PASSWORD", os.getenv("DB_PASSWORD"))
 
-DB_HOST = os.getenv("DB_HOST")
-DB_PORT = os.getenv("DB_PORT")
-DB_NAME = os.getenv("DB_NAME")
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
+# VALIDASI ENV (BIAR ERROR JELAS)
+missing = [k for k, v in {
+    "DB_HOST": DB_HOST,
+    "DB_PORT": DB_PORT,
+    "DB_NAME": DB_NAME,
+    "DB_USER": DB_USER,
+    "DB_PASSWORD": DB_PASSWORD
+}.items() if not v]
 
+if missing:
+    st.error(f"❌ Missing environment variables: {', '.join(missing)}")
+    st.stop()
+
+# ENCODE PASSWORD (WAJIB)
+DB_PASSWORD = quote_plus(DB_PASSWORD)
 
 # DB ENGINE
 engine = create_engine(
-    f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{int(DB_PORT)}/{DB_NAME}",
+    pool_pre_ping=True
 )
 
-
 # PAGE CONFIG
-
 st.set_page_config(
     page_title="Movement Daily Dashboard",
-    layout="wide")
+    layout="wide"
+)
 
-st.title("Movement Daily Dashboard")
+st.title("📦 Movement Daily Dashboard")
 
-# DEFAULT DATE
 yesterday = date.today() - timedelta(days=3)
 
 # SIDEBAR FILTER
@@ -45,7 +57,7 @@ if isinstance(date_range, tuple):
 else:
     start_date = end_date = date_range
 
-
+# LOAD FILTER OPTIONS
 @st.cache_data
 def load_filter_options():
     query = """
@@ -121,6 +133,7 @@ st.warning(f"❗ Jumlah Data **Tidak Sesuai**: **{tidak_sesuai}**")
 
 st.divider()
 
+# RENAME KOLOM
 df = df.rename(columns={
     "tanggal": "Tanggal",
     "outlet": "Outlet",
@@ -149,13 +162,12 @@ highlight_cols = [
 ]
 
 def highlight_tidak_sesuai(row):
-    styles = []
-    for col in row.index:
-        if row["Status Stok"] == "Tidak Sesuai" and col in highlight_cols:
-            styles.append("background-color: #ffcccc; font-weight: bold;")
-        else:
-            styles.append("")
-    return styles
+    return [
+        "background-color: #ffcccc; font-weight: bold;"
+        if row["Status Stok"] == "Tidak Sesuai" and col in highlight_cols
+        else ""
+        for col in row.index
+    ]
 
 styled_df = df.style.apply(highlight_tidak_sesuai, axis=1)
 
