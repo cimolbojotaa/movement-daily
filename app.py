@@ -40,7 +40,7 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("📦 Movement Daily Dashboard")
+st.title("Movement Daily Dashboard")
 
 yesterday = date.today() - timedelta(days=3)
 
@@ -139,7 +139,7 @@ df = df.rename(columns={
     "outlet": "Outlet",
     "spv": "SPV",
     "kota": "Kota",
-    "item": "Nama Produk",
+    "item": "Item",
     "stock_awal": "Stok Awal Hari",
     "stock_masuk": "Barang Masuk (DC)",
     "qty_terpakai": "Terpakai / Terjual",
