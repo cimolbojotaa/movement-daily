@@ -12,7 +12,7 @@ DB_NAME = st.secrets.get("DB_NAME", os.getenv("DB_NAME"))
 DB_USER = st.secrets.get("DB_USER", os.getenv("DB_USER"))
 DB_PASSWORD = st.secrets.get("DB_PASSWORD", os.getenv("DB_PASSWORD"))
 
-# VALIDASI ENV (BIAR ERROR JELAS)
+# VALIDASI ENV
 missing = [k for k, v in {
     "DB_HOST": DB_HOST,
     "DB_PORT": DB_PORT,
@@ -25,7 +25,6 @@ if missing:
     st.error(f"❌ Missing environment variables: {', '.join(missing)}")
     st.stop()
 
-# ENCODE PASSWORD (WAJIB)
 DB_PASSWORD = quote_plus(DB_PASSWORD)
 
 # DB ENGINE
@@ -60,7 +59,8 @@ start_date = end_date = selected_date
 def load_filter_options():
     query = """
         SELECT DISTINCT outlet, item
-        FROM public.mv_movement_daily 
+        FROM public.mv_movement_daily
+        WHERE lower(item) NOT ILIKE '%frozen%'
         ORDER BY outlet, item
     """
     return pd.read_sql(query, engine)
@@ -75,13 +75,11 @@ default_index = (
     else 0
 )
 
-
 outlet_selected = st.sidebar.selectbox(
     "Outlet",
     options=outlet_options,
     index=default_index
 )
-
 
 item_selected = st.sidebar.multiselect(
     "Item",
@@ -101,7 +99,7 @@ def load_data(start_date, end_date, outlet_selected, item_selected):
             stock_awal, 
             stock_masuk,
             qty_terpakai,
-            qty_sisa, -- qty_sisa = qty_sisa_raw - qty_retur
+            qty_sisa,
             ideal_usage_qty,
             retur_qty,
             qty_sisa_seharusnya,
@@ -109,6 +107,7 @@ def load_data(start_date, end_date, outlet_selected, item_selected):
             so_flag
         FROM public.mv_movement_daily
         WHERE tanggal BETWEEN :start_date AND :end_date
+          AND lower(item) NOT ILIKE '%frozen%'
     """
 
     params = {
@@ -119,7 +118,6 @@ def load_data(start_date, end_date, outlet_selected, item_selected):
     if outlet_selected:
         query += " AND outlet = :outlet"
         params["outlet"] = outlet_selected
-
 
     if item_selected:
         query += " AND item = ANY(:item)"
@@ -188,7 +186,7 @@ highlight_cols = [
     "Outlet",
     "SPV",
     "Kota",
-    "Nama Produk",
+    "Item",
     "Status Stok"
 ]
 
@@ -216,12 +214,12 @@ st.markdown("""
 **Keterangan Kolom:**
 - **Stok Awal Hari**: Sisa stok dari hari sebelumnya **(sudah dikurangi retur)**
 - **Barang Masuk (DC)**: Barang kiriman dari gudang / DC  
-- **Terpakai / Terjual**: Barang yang digunakan / terjual **(Stok Awal Hari + Barang Masuk (DC) - SO)**
+- **Terpakai / Terjual**: Barang yang digunakan / terjual  
 - **Barang Retur**: Barang yang dikembalikan ke gudang / DC  
-- **Sisa Stok Akhir**: Stok fisik terakhir **(sudah dikurangi retur)** 
+- **Sisa Stok Akhir**: Stok fisik terakhir **(sudah dikurangi retur)**  
 - **Pemakaian Seharusnya**: Standar pemakaian (data DRetail)  
 - **Sisa Seharusnya**: Sisa stok sesuai standar (data DRetail)  
-- **Status Stok**: **Sesuai** / **Tidak Sesuai**, sesuai jika **Sisa Stok Akhir = Sisa Seharusnya**
+- **Status Stok**: **Sesuai / Tidak Sesuai**
 
 </small>
 """, unsafe_allow_html=True)
