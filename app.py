@@ -47,15 +47,13 @@ yesterday = date.today() - timedelta(days=3)
 # SIDEBAR FILTER
 st.sidebar.header("Filter")
 
-date_range = st.sidebar.date_input(
+selected_date = st.sidebar.date_input(
     "Tanggal",
-    value=(yesterday, yesterday)
+    value=yesterday
 )
 
-if isinstance(date_range, tuple):
-    start_date, end_date = date_range
-else:
-    start_date = end_date = date_range
+start_date = end_date = selected_date
+
 
 # LOAD FILTER OPTIONS
 @st.cache_data
@@ -69,17 +67,20 @@ def load_filter_options():
 
 filter_df = load_filter_options()
 
-default_outlet = (
-    ["Alfamart Kopo"]
-    if "Alfamart Kopo" in filter_df["outlet"].values
-    else []
+outlet_options = filter_df["outlet"].dropna().unique().tolist()
+
+default_index = (
+    outlet_options.index("Alfamart Kopo")
+    if "Alfamart Kopo" in outlet_options
+    else 0
 )
 
-outlet_selected = st.sidebar.multiselect(
+outlet_selected = st.sidebar.selectbox(
     "Outlet",
-    options=filter_df["outlet"].dropna().unique(),
-    default=default_outlet
+    options=outlet_options,
+    index=default_index
 )
+
 
 item_selected = st.sidebar.multiselect(
     "Item",
@@ -96,10 +97,10 @@ def load_data(start_date, end_date, outlet_selected, item_selected):
             spv,
             kota,
             item,
-            stock_awal,
+            stock_awal, 
             stock_masuk,
             qty_terpakai,
-            qty_sisa,
+            qty_sisa, # qty_sisa = qty_sisa_raw - qty_retur
             ideal_usage_qty,
             retur_qty,
             qty_sisa_seharusnya,
@@ -115,8 +116,9 @@ def load_data(start_date, end_date, outlet_selected, item_selected):
     }
 
     if outlet_selected:
-        query += " AND outlet = ANY(:outlet)"
+        query += " AND outlet = :outlet"
         params["outlet"] = outlet_selected
+
 
     if item_selected:
         query += " AND item = ANY(:item)"
@@ -158,9 +160,7 @@ df = df.rename(columns={
     "so_flag": "Status Stok"
 })
 
-# ============================
 # BULATKAN KOLOM NUMERIK
-# ============================
 numeric_cols = [
     "Stok Awal Hari",
     "Barang Masuk (DC)",
@@ -215,18 +215,18 @@ st.markdown("""
 **Keterangan Kolom:**
 - **Stok Awal Hari**: Sisa stok dari hari sebelumnya **(sudah dikurangi retur)**
 - **Barang Masuk (DC)**: Barang kiriman dari gudang / DC  
-- **Terpakai / Terjual**: Barang yang digunakan / terjual  
+- **Terpakai / Terjual**: Barang yang digunakan / terjual (Stok Awal Hari + Barang Masuk (DC) - SO)
 - **Barang Retur**: Barang yang dikembalikan ke gudang / DC  
-- **Sisa Stok Akhir**: Stok fisik terakhir  
-- **Pemakaian Seharusnya**: Standar pemakaian (dari DRetail)  
-- **Sisa Seharusnya**: Sisa stok sesuai standar  
-- **Status Stok**: **Sesuai** / **Tidak Sesuai**
+- **Sisa Stok Akhir**: Stok fisik terakhir **(sudah dikurangi retur)** 
+- **Pemakaian Seharusnya**: Standar pemakaian (data DRetail)  
+- **Sisa Seharusnya**: Sisa stok sesuai standar (data DRetail)  
+- **Status Stok**: **Sesuai** / **Tidak Sesuai**, sesuai jika Sisa Stok Akhir = Sisa Seharusnya
 
 </small>
 """, unsafe_allow_html=True)
 
 # DOWNLOAD
-st.download_button(
+st.download_button
     "⬇️ Download CSV",
     df.to_csv(index=False),
     file_name="movement_daily.csv",
