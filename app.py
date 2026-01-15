@@ -52,6 +52,7 @@ selected_date = st.sidebar.date_input(
 )
 
 start_date = end_date = selected_date
+cache_buster = selected_date.strftime("%Y-%m-%d")
 
 
 # LOAD FILTER OPTIONS
@@ -88,7 +89,7 @@ item_selected = st.sidebar.multiselect(
 
 # LOAD DATA
 @st.cache_data
-def load_data(start_date, end_date, outlet_selected, item_selected):
+def load_data(start_date, end_date, outlet_selected, item_selected, cache_buster):
     query = """
         SELECT
             tanggal,
@@ -127,7 +128,7 @@ def load_data(start_date, end_date, outlet_selected, item_selected):
 
     return pd.read_sql(text(query), engine, params=params)
 
-df = load_data(start_date, end_date, outlet_selected, item_selected)
+df = load_data(start_date, end_date, outlet_selected, item_selected, cache_buster)
 
 # INFO PERIODE
 st.caption(f"📅 Periode Data: {start_date}")
